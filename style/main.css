@@ -137,8 +137,35 @@ hr {
 
   100% {
     opacity: 1; } }
+
+.game-timer {
+    position:relative;
+}
+  .game-timer .timer-bar {
+    margin:20px 0px 20px 0px;
+    width:100%;
+    height:20px;
+    text-align:center
+  }
+  .game-timer .timer-bar progress {
+    width:80%;
+  	background-color: #bbada0;
+    border-radius:5px;
+  }
+    .game-timer .timer-bar progress::-webkit-progress-bar {
+      background-color: #bbada0;
+      border-radius:5px;
+    }
+    .game-timer .timer-bar progress::-webkit-progress-value {
+	  background: #8f7a66;
+      border-radius:5px;
+    }
+    .game-timer .timer-bar progress::-moz-progress-bar {
+      background-color:#8f7a66;
+      border-radius:5px;
+    }
+
 .game-container {
-  margin-top: 40px;
   position: relative;
   padding: 15px;
   cursor: default;
