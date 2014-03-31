@@ -6,6 +6,14 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
 
   this.startTiles     = 2;
 
+  //timer values
+  this.moveTimerThreshold = 750;
+  this.moveTimerInterval = 50;
+  this.moveTimerValue = 0;
+
+  //move history
+  this.moveHistoryLength = 20;
+  
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
@@ -58,9 +66,82 @@ GameManager.prototype.setup = function () {
     this.addStartTiles();
   }
 
+  this.moveHistory = new Array(0,1,2,3);
+  this.resetMoveTimer();
+
   // Update the actuator
   this.actuate();
+
+  //set the "gameStarted" flag
+  this.gameStarted = false;
+
 };
+
+//start the move timer
+GameManager.prototype.startMoveTimer = function () {
+
+    var that = this;
+
+    that.moveTimer = setInterval(function () {
+        that.moveTimerValue += that.moveTimerInterval;
+        if (that.moveTimerValue <= that.moveTimerThreshold) {
+            document.getElementById('timerProgress').setAttribute('value', (that.moveTimerValue / that.moveTimerThreshold) * 100);
+        } else {
+            that.moveMostHatedDirection();
+        }
+    }, that.moveTimerInterval);
+
+};
+
+//reset the move timer
+GameManager.prototype.resetMoveTimer = function () {
+
+    clearInterval(this.moveTimer);
+    this.moveTimerValue = 0;
+    document.getElementById('timerProgress').setAttribute('value', this.moveTimerValue);
+
+}
+
+//get the move count for the given direction ( 0: up, 1: right, 2: down, 3: left )
+GameManager.prototype.moveMostHatedDirection = function () {
+    
+    var that = this;
+
+    //count occurences of each direction
+    var directions = {};
+    for (var i = 0; i < that.moveHistory.length ; i++) {
+        if (directions.hasOwnProperty(that.moveHistory[i])) {
+            directions[that.moveHistory[i]]++;
+            continue;
+        }
+        directions[that.moveHistory[i]] = 1;
+    }
+
+    //sort by least used (move object to array and sort)
+    var sortedDirections = new Array();
+    for (var direction in directions) {
+        sortedDirections.push([direction, directions[direction]]);
+    }
+    sortedDirections.sort(function (a, b) { //ascending order
+        return a[1] - b[1];
+    });
+
+    //move in the least used direction that is a valid move
+    var index = 0;
+    var direction = sortedDirections[index][0];
+    while (!that.move(direction)) {
+        index += 1;
+        if (index < sortedDirections.length) {
+            var arrayItem = sortedDirections[index];
+            if (arrayItem) {
+                direction = arrayItem[0];
+            }
+        } else {
+            break;
+        }
+    }
+
+}
 
 // Set up the initial tiles to start the game with
 GameManager.prototype.addStartTiles = function () {
@@ -137,6 +218,11 @@ GameManager.prototype.move = function (direction) {
 
   if (this.isGameTerminated()) return; // Don't do anything if the game's over
 
+  this.moveHistory.push(direction); //push the move to moveHistory array
+  if (this.moveHistory.length > this.moveHistoryLength) {
+      this.moveHistory.shift();
+  }
+
   var cell, tile;
 
   var vector     = this.getVector(direction);
@@ -184,6 +270,10 @@ GameManager.prototype.move = function (direction) {
   });
 
   if (moved) {
+
+    this.resetMoveTimer(); //reset auto move timer
+    this.startMoveTimer(); //start it up again
+
     this.addRandomTile();
 
     if (!this.movesAvailable()) {
@@ -192,6 +282,9 @@ GameManager.prototype.move = function (direction) {
 
     this.actuate();
   }
+
+  return moved;
+
 };
 
 // Get the vector representing the chosen direction
